@@ -1,4 +1,0 @@
-MONGO_URI=mongodb://localhost:27017/sentra-incident-dashboard
-JWT_SECRET=supersecret64charjwttokenkey1234567890abcdef1234567890abcdef
-FRONTEND_URL=http://localhost:3000
-NODE_ENV=development
