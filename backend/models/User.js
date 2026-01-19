@@ -30,18 +30,18 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before save (no next)
-userSchema.pre('save', async function () {
+// 🔥 FIXED: Added next() callback
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    return;
+    next();  // 👈 THIS WAS MISSING!
   }
-
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();    // 👈 THIS WAS MISSING!
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password);
+  return await bcrypt.compare(enteredPassword, this.password);  // 👈 Added await
 };
 
 module.exports = mongoose.model('User', userSchema);

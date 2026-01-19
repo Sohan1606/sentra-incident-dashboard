@@ -1,32 +1,63 @@
 const express = require('express');
-const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/db');
+const helmet = require('helmet');
 
-dotenv.config();
-
+// Create Express app
 const app = express();
 
-// Connect Database
-connectDB();
-
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+app.use(cors({
+  origin: 'https://sentra-6zqa.onrender.com', // Your frontend domain
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/incidents', require('./routes/incidentRoutes'));
-app.use('/api/awareness', require('./routes/awarenessRoutes'));
+// In-memory storage (Render free tier - no persistent DB)
+let incidents = [];
 
+// ✅ INCIDENTS API ROUTES
+app.get('/api/incidents', (req, res) => {
+  res.json(incidents);
+});
 
-// Test route
-app.get('/', (req, res) => {
-  res.json({ message: 'Sentra API is running' });
+app.post('/api/incidents', (req, res) => {
+  const incident = { 
+    id: Date.now(),
+    ...req.body 
+  };
+  incidents.unshift(incident); // Add to beginning (newest first)
+  res.status(201).json(incident);
+});
+
+app.put('/api/incidents/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = incidents.findIndex(i => i.id === id);
+  
+  if (index !== -1) {
+    incidents[index] = { ...incidents[index], ...req.body };
+    res.json(incidents[index]);
+  } else {
+    res.status(404).json({ error: 'Incident not found' });
+  }
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', incidentsCount: incidents.length });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Sentra Backend running on port ${PORT}`);
+  console.log(`📊 Health: http://localhost:${PORT}/api/health`);
 });
+
+module.exports = app;
